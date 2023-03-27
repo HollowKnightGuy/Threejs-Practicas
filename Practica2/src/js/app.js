@@ -4,6 +4,7 @@ import * as dat from 'dat.gui';
 
 import sosio from '../img/AAA.jpg';
 import sosio2 from '../img/bbb.jpg';
+import { Raycaster } from 'three';
 
 // INSTANCIAMOS EL RENDERER LA ESCENA, CAMARA Y LOS CONTROLES DE CAMARA
 const renderer = new THREE.WebGL1Renderer();
@@ -35,6 +36,18 @@ scene.add(plane);
 plane.rotation.x = -.5 * Math.PI;
 
 
+const plane2geometry = new THREE.PlaneGeometry(10, 10, 10, 10)
+const plane2material = new THREE.MeshBasicMaterial({
+    color: 0xFFFFFF,
+    wireframe: true
+})
+const plane2 = new THREE.Mesh(plane2geometry, plane2material);
+plane2.position.set(10, 10, 15);
+scene.add(plane2);
+
+
+
+
 // CREACION DEL GRID
 const gridHelper = new THREE.GridHelper(30,15);
 scene.add(gridHelper);
@@ -58,8 +71,8 @@ const spherematerial = new THREE.MeshStandardMaterial({
 const sphere = new THREE.Mesh(spheregeometry, spherematerial);
 scene.add(sphere);
 sphere.castShadow = true;
-sphere.position.set( -10, 10, 0 )
-
+sphere.position.set( -10, 10, 0 );
+sphereId = sphere.id;
 
 // INSTANCIAMOS UNA LUZ Y DOS HELPER, UNO DE LUZ Y OTRO DE SOMBRAS
 
@@ -88,7 +101,7 @@ sphere.position.set( -10, 10, 0 )
 
     // Spot Light
     const spotLight = new THREE.SpotLight(0xFFFFFF);
-    spotLight.position.set(-100,100,0);
+    spotLight.position.set(-100,100,);
     spotLight.castShadow = true;
     const sLightHelper = new THREE.SpotLightHelper(spotLight);
     scene.add(sLightHelper);
@@ -111,17 +124,17 @@ const box2geometry = new THREE.BoxGeometry(4, 4, 4);
 // podemos asignar un material diferente a cada cara 
 const box2Multimaterial = [
     new THREE.MeshStandardMaterial({color: 0xffffff, map:textureLoader.load(sosio2)}),
-    new THREE.MeshStandardMaterial({color: 0xffffff, map:textureLoader.load(sosio)}),
     new THREE.MeshStandardMaterial({color: 0xffffff, map:textureLoader.load(sosio2)}),
-    new THREE.MeshStandardMaterial({color: 0xffffff, map:textureLoader.load(sosio)}),
     new THREE.MeshStandardMaterial({color: 0xffffff, map:textureLoader.load(sosio2)}),
-    new THREE.MeshStandardMaterial({color: 0xffffff, map:textureLoader.load(sosio)})
+    new THREE.MeshStandardMaterial({color: 0xffffff, map:textureLoader.load(sosio2)}),
+    new THREE.MeshStandardMaterial({color: 0xffffff, map:textureLoader.load(sosio2)}),
+    new THREE.MeshStandardMaterial({color: 0xffffff, map:textureLoader.load(sosio2)})
 ];
 const box2 = new THREE.Mesh(box2geometry, box2Multimaterial);
 box2.castShadow = true;
 scene.add(box2);
-box2.position.set(-2, 10, 10)
-
+box2.position.set(-2, 10, 10);
+box2.name = "box2";
 
 
 // INSTANCIAMOS EL CONTROL DE LA INTERFAZ
@@ -163,19 +176,50 @@ gui.add(options, 'rotation', 0.01, 1)
 
 let step = 0;
 
+const mousePosition = new THREE.Vector2();
+window.addEventListener('mousemove', function(e){
+    mousePosition.x = (e.clientX / window.innerWidth) * 2 - 1
+    mousePosition.y = - (e.clientY / window.innerHeight) * 2 + 1 
+})
+
+const rayCaster = new THREE.Raycaster();
+
 // CREAMOS LA FUNCION QUE CREARÁ LAS ANIMACIONES Y MOSTRARÁ TODO
 function animate(){
     box.rotation.x += 0.01;
     box.rotation.y += 0.01;
-    box2.rotation.x += options.rotation;
-    box2.rotation.y += options.rotation;
+
     step += options.speed;
     sphere.position.y = 2 * (Math.abs(Math.sin(step)) )+ 8;
-    renderer.render(scene, camera);
     spotLight.angle = options.angle;
     spotLight.penumbra = options.penumbra;
     spotLight.intensity = options.intensity;
     sLightHelper.update();
+    
+    rayCaster.setFromCamera(mousePosition, camera);
+    const intersects = rayCaster.intersectObjects(scene.children);
+
+    for(let i = 0; i < intersects.length; i++){
+        if(intersects[i].object.id === sphereId){
+            intersects[i].object.material.color.set(0xFF0000);
+        }
+        if(intersects[i].object.name === "box2"){
+                box2.rotation.x += options.rotation;
+    box2.rotation.y += options.rotation;
+        }
+    }
+
+
+    plane2.geometry.attributes.position.array[0] = 3 * Math.random();
+    plane2.geometry.attributes.position.array[1] = 3 * Math.random();
+    plane2.geometry.attributes.position.array[2] = 3 * Math.random();
+    const lastPointZ = plane2.geometry.attributes.position.array.length - 1;
+    plane2.geometry.attributes.position.array[lastPointZ] = 3 * Math.random();
+    plane2.geometry.attributes.position.needsUpdate = true;
+    
+
+    renderer.render(scene, camera);
+
     
 }
 
